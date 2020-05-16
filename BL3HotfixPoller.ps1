@@ -22,30 +22,34 @@ echo "================================================="
 # main polling loop start
 while ($true)
 {
-    # Make Rest API and get config version number...returns object list of services and we only care about the service called 'micropatch'
-    $hotfixMicropatchSection = (Invoke-RestMethod -Uri "https://discovery.services.gearboxsoftware.com/v2/client/$($platform)/pc/oak/verification").services.where({$_.service_name -eq 'micropatch'})
-    
-    # Keep track of version of micropatch
-    $hotfixNumber = $hotfixMicropatchSection.configuration_version
-    
-    # keep track of micropatch contents in case content changes but version stays the same. (Probably bad patch practice but it could happen)
-    $hotfixContents = (ConvertTo-Json $hotfixMicropatchSection.parameters)
+    try {
+        # Make Rest API and get config version number...returns object list of services and we only care about the service called 'micropatch'
+        $hotfixMicropatchSection = (Invoke-RestMethod -Uri "https://discovery.services.gearboxsoftware.com/v2/client/$($platform)/pc/oak/verification").services.where({$_.service_name -eq 'micropatch'})
 
-    if ($currentHotfixNumber -eq $null) #First poll, find initial patch!
-    {
-        $currentHotfixNumber = $hotfixNumber
-        $currentHotfixContents = $hotfixContents
-        echo ("Initial hotfix found!           Detected at: " + [DateTime]::UtcNow.ToString('u') + "(UTC).       Hotfix version: " + $currentHotfixNumber)
-    }
-    elseif (($currentHotfixNumber -ne $hotfixNumber) -or ($currentHotfixContents -ne $hotfixContents)) #Difference of some sort was found.
-    {
-        $currentHotfixNumber = $hotfixNumber
-        $currentHotfixContents = $hotfixContents
-        echo ("Hotfix change detected!         Detected at: " + [DateTime]::UtcNow.ToString('u') + "(UTC).       Hotfix version: " + $currentHotfixNumber)
-    }
-    else #No change (remove # in line below to show something)
-    {
-        #echo "No change" #Helpful for debug
+        # Keep track of version of micropatch
+        $hotfixNumber = $hotfixMicropatchSection.configuration_version
+
+        # keep track of micropatch contents in case content changes but version stays the same. (Probably bad patch practice but it could happen)
+        $hotfixContents = (ConvertTo-Json $hotfixMicropatchSection.parameters)
+
+        if ($currentHotfixNumber -eq $null) #First poll, find initial patch!
+        {
+            $currentHotfixNumber = $hotfixNumber
+            $currentHotfixContents = $hotfixContents
+            echo ("Initial hotfix found!           Detected at: " + [DateTime]::UtcNow.ToString('u') + "(UTC).       Hotfix version: " + $currentHotfixNumber)
+        }
+        elseif (($currentHotfixNumber -ne $hotfixNumber) -or ($currentHotfixContents -ne $hotfixContents)) #Difference of some sort was found.
+        {
+            $currentHotfixNumber = $hotfixNumber
+            $currentHotfixContents = $hotfixContents
+            echo ("Hotfix change detected!         Detected at: " + [DateTime]::UtcNow.ToString('u') + "(UTC).       Hotfix version: " + $currentHotfixNumber)
+        }
+        else #No change (remove # in line below to show something)
+        {
+            #echo "No change" #Helpful for debug
+        }
+    } catch {
+        echo ("Error! Could not access the $($platform) hotfix api. Attempt made at " + [DateTime]::UtcNow.ToString('u') + "(UTC).")
     }
 
     Start-Sleep -Seconds $pollingInterval;
